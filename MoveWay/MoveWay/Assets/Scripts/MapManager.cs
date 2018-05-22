@@ -4,17 +4,15 @@ using UnityEngine;
 
 public class MapManager : MonoBehaviour
 {
-    //マス目　＝　マス
+    //マス目　＝　マス gird
     //タイル　＝　マスの塊、親、
 
     public enum mapObjectNum
     {
-        Null = -1,
-        None,
-        Wall,
-        Road,
-        Key,
-        maxNum,
+        Wall = 0x0,
+        Road = 0x1,
+        Key = 0x2,
+        Player = 0x04,
     }
     //マップに配置するオブジェクト群
     public GameObject[] mapObject;
@@ -41,9 +39,12 @@ public class MapManager : MonoBehaviour
     GameObject[] gridParent;
 
     //クリックされた親
-    uint[] clickedTileNum;
+    int[] clickedTileNum;
     //親を選択した数
     int parentSelectCount;
+
+    //プレイヤー
+    public GameObject player;
 
     void Start()
     {
@@ -58,8 +59,8 @@ public class MapManager : MonoBehaviour
 
             //親の位置を設定
             Vector3 pos = new Vector3();
-            pos.x = ((-64 * 4.5f) + (i % 3) * 64);
-            pos.y = ((64 * 4.5f) - (i / 3) * 64);
+            pos.x = ((-64 * 4.5f) + (i % 3) * 192);
+            pos.y = ((64 * 4.5f) - (i / 3) * 192);
             pos.z = 0.0f;
 
             gridParent[i].transform.position = pos;
@@ -85,7 +86,7 @@ public class MapManager : MonoBehaviour
 
         //各種初期化
         parentSelectCount = 0;
-        clickedTileNum = new uint[2];
+        clickedTileNum = new int[2];
     }
 
     void Update()
@@ -94,8 +95,10 @@ public class MapManager : MonoBehaviour
 
         if(parentSelectCount == 2)
         {
-            Debug.Log(clickedTileNum[0].ToString());
-            Debug.Log(clickedTileNum[1].ToString());
+            ChangeParentPosition(clickedTileNum[0], clickedTileNum[1]);
+            clickedTileNum[0] = 0;
+            clickedTileNum[1] = 0;
+            parentSelectCount = 0;
         }
     }
 
@@ -115,7 +118,9 @@ public class MapManager : MonoBehaviour
         if(Input.GetMouseButtonDown(0))
         {
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            clickedTileNum[parentSelectCount] = (uint)((mousePos.x + (64 * 4) / 64) + ((mousePos.y + (64 * 4) / 64) % 3));
+            int dx = (int)Mathf.Abs((mousePos.x + (64 * 4.5f)) / 192);
+            int dy = (int)Mathf.Abs((mousePos.y - (64 * 4.5f)) / 192) * 3;
+            clickedTileNum[parentSelectCount] = dx + dy;
 
             if(clickedTileNum[parentSelectCount] >= 0 && clickedTileNum[parentSelectCount] <= 8)
             {
@@ -130,7 +135,14 @@ public class MapManager : MonoBehaviour
 
     private void ChangeParentPosition(int parentNum1,int parentNum2)
     {
-
+        Vector3 tmp;
+        tmp = gridParent[parentNum1].transform.position;
+        gridParent[parentNum1].transform.position = gridParent[parentNum2].transform.position;
+        gridParent[parentNum2].transform.position = tmp;
+        GameObject tmp2;
+        tmp2 = gridParent[parentNum1];
+        gridParent[parentNum1] = gridParent[parentNum2];
+        gridParent[parentNum2] = tmp2;
     }
 
     private void ChangeMapData(int parentNum1,int parentNum2)
@@ -138,6 +150,9 @@ public class MapManager : MonoBehaviour
 
     }
 
+    private void ChangePlayerPos(int tileNum1,int tileNum2)
+    {
 
+    }
     
 }   

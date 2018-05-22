@@ -10,12 +10,12 @@ public class PlayerController : MonoBehaviour
     //プレイヤーの移動したい方向
     Vector2 velocity;
     //マップマネージャ
-    public MapManager mapManager;
+    public GameObject mapManager;
     void Start ()
     {
         velocity = Vector2.zero;
-        pDx = 1;
-        pDy = 1;
+        pDx = 4;
+        pDy = 4;
 	}
 	
 	void Update ()
@@ -41,7 +41,7 @@ public class PlayerController : MonoBehaviour
             velocity = Vector2.zero;
         }
 
-        MapManager.mapObjectNum mapD = mapManager.GetMapData(pDx + (int)velocity.x, pDy + (int)velocity.y);
+        MapManager.mapObjectNum mapD =  mapManager.GetComponent<MapManager>().GetMapData(pDx + (int)velocity.x, pDy + (int)velocity.y);
 
         if(mapD != MapManager.mapObjectNum.Wall)
         {
@@ -51,4 +51,6 @@ public class PlayerController : MonoBehaviour
 
         transform.position = new Vector3((-64 * 4) + pDx * 64,(64 * 4) - pDy * 64);
     }
+
+
 }
