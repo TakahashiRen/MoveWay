@@ -9,47 +9,53 @@ public class MapManager : MonoBehaviour
 
     public enum mapObjectNum
     {
-        Wall = 0x0,
-        Road = 0x1,
-        Key = 0x2,
-        Player = 0x04,
+        Wall    = 0,
+        Road    = 1,
+        Key     = 2,
+        Player  = 4,
     }
     //マップに配置するオブジェクト群
     public GameObject[] mapObject;
 
     //マップのマスの最大幅と高さ
-    uint mapHeight = 9;
-    uint mapWidth = 9;
+    int mapHeight = 9;
+    int mapWidth = 9;
 
     //マップデータ
-    int[,] mapData =
+    int[,] baseMapData =
     {
-        { 1,1,1,1,1,1,1,1,1},
-        { 1,2,2,1,1,1,1,1,1},
-        { 1,2,1,1,1,1,1,1,1},
-        { 1,1,1,1,2,1,1,1,1},
-        { 1,1,1,2,3,1,1,1,1},
-        { 1,1,1,1,1,1,1,1,1},
-        { 1,1,1,1,1,1,1,1,1},
-        { 1,1,1,1,1,1,1,1,1},
-        { 1,1,1,1,1,1,1,1,1},
+        { 0,0,0,0,0,0,0,0,0},
+        { 0,4,1,0,0,0,0,0,0},
+        { 0,1,0,0,0,0,0,0,0},
+        { 0,0,0,0,1,0,0,0,0},
+        { 0,0,0,1,2,0,0,0,0},
+        { 0,0,0,0,0,0,0,0,0},
+        { 0,0,0,0,0,0,0,0,0},
+        { 0,0,0,0,0,0,0,0,0},
+        { 0,0,0,0,0,0,0,0,0},
     };
+
+    //いじるマップのオブジェクトデータ
+    GameObject[,] mapData;
 
     //配置されたマスの親
     GameObject[] gridParent;
 
-    //クリックされた親
-    int[] clickedTileNum;
-    //親を選択した数
-    int parentSelectCount;
-
     //プレイヤー
-    public GameObject player;
+    GameObject player;
+
+    //選べるタイルの数
+    int tileSelectNum;
+    //クリックした位置のタイルの番号
+    int[] clickedTileNum;
+
+    //タイルを選んだ数
+    int tileSelectCount;
 
     void Start()
     {
         //マスの親の数を決める
-        uint parentMaxNum = (mapHeight / 3) * (mapWidth / 3);
+        int parentMaxNum = (mapHeight / 3) * (mapWidth / 3);
         //親を生成する
         gridParent = new GameObject[parentMaxNum];
         for(int i = 0;i < parentMaxNum;i++)
@@ -65,7 +71,8 @@ public class MapManager : MonoBehaviour
 
             gridParent[i].transform.position = pos;
         }
-
+        //マップデータの生成
+        mapData = new GameObject[9, 9];
         for(int i = 0;i < mapHeight;i++)
         {
             for(int j = 0;j < mapWidth;j++)
@@ -77,82 +84,106 @@ public class MapManager : MonoBehaviour
                 //所属する親の決定
                 uint parentNum = (uint)(j / 3 + i / 3 * 3);
                 //マップデータを読み対応したマップオブジェクトを生成する
-                GameObject obj = Instantiate(mapObject[mapData[i, j]],new Vector3(pos.x,pos.y,0.0f),transform.rotation);
+                GameObject obj = null;
+                switch(baseMapData[i,j])
+                {
+                    case (int)mapObjectNum.Wall:
+                        obj = Instantiate(mapObject[0], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                        break;
+                    case (int)mapObjectNum.Road:
+                        obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                        break;
+                    case (int)mapObjectNum.Key:
+                        obj = Instantiate(mapObject[2], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                        break;
+                    case (int)mapObjectNum.Player:
+                        obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                        player = Instantiate(mapObject[3], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                        break;
+                }
                 //親の設定
                 obj.transform.parent = gridParent[parentNum].transform;
+                mapData[i, j] = obj;
             }
         }
-
-
-        //各種初期化
-        parentSelectCount = 0;
-        clickedTileNum = new int[2];
+        //各種初期設定    
+        tileSelectNum = 2;
+        clickedTileNum = new int[tileSelectNum];
+        tileSelectCount = 0;
     }
 
+    //更新処理
     void Update()
     {
+        //タイルが選択されているかチェック
         CheckClickParent();
-
-        if(parentSelectCount == 2)
+        //タイルが2枚選択されているときの処理
+        if(tileSelectCount == 2)
         {
-            ChangeParentPosition(clickedTileNum[0], clickedTileNum[1]);
-            clickedTileNum[0] = 0;
-            clickedTileNum[1] = 0;
-            parentSelectCount = 0;
+            ChangeMapData(clickedTileNum[0], clickedTileNum[1]);
+            ChangeMapDataPosition(clickedTileNum[0], clickedTileNum[1]);
+            tileSelectCount = 0;
         }
-    }
-
-    public mapObjectNum GetMapData(int dx,int dy)
-    {
-
-        if(dx <= 8  && dx >= 0 && dy <= 8 && dy >= 0)
-        {
-            return (mapObjectNum)mapData[dy, dx];
-        }
-
-        return 0;
     }
 
     private void CheckClickParent()
     {
-        if(Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0))
         {
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             int dx = (int)Mathf.Abs((mousePos.x + (64 * 4.5f)) / 192);
             int dy = (int)Mathf.Abs((mousePos.y - (64 * 4.5f)) / 192) * 3;
-            clickedTileNum[parentSelectCount] = dx + dy;
+            clickedTileNum[tileSelectCount] = dx + dy;
 
-            if(clickedTileNum[parentSelectCount] >= 0 && clickedTileNum[parentSelectCount] <= 8)
+            if (clickedTileNum[tileSelectCount] >= 0 && clickedTileNum[tileSelectCount] <= 8)
             {
-                parentSelectCount++;
+                tileSelectCount++;
             }
             else
             {
-                clickedTileNum[parentSelectCount] = 0;
+                clickedTileNum[tileSelectCount] = 0;
             }
         }
     }
 
-    private void ChangeParentPosition(int parentNum1,int parentNum2)
+    void ChangeMapData(int parentNum1,int parentNum2)
     {
-        Vector3 tmp;
-        tmp = gridParent[parentNum1].transform.position;
-        gridParent[parentNum1].transform.position = gridParent[parentNum2].transform.position;
-        gridParent[parentNum2].transform.position = tmp;
-        GameObject tmp2;
-        tmp2 = gridParent[parentNum1];
-        gridParent[parentNum1] = gridParent[parentNum2];
-        gridParent[parentNum2] = tmp2;
+        for(int i = 0;i < 3;i++)
+        {
+            for(int j = 0;j < 3;j++)
+            {
+                GameObject tmp;
+                tmp = mapData[i + (parentNum1 / 3) * 3, j + (parentNum1 % 3) * 3];
+                mapData[i + (parentNum1 / 3) * 3, j + (parentNum1 % 3) * 3] = mapData[i + (parentNum2 / 3) * 3, j + (parentNum2 % 3) * 3];
+                mapData[i + (parentNum2 / 3) * 3, j + (parentNum2 % 3) * 3] = tmp;
+            }
+        }
     }
 
-    private void ChangeMapData(int parentNum1,int parentNum2)
+    void ChangeMapDataPosition(int parentNum1,int parentNum2)
     {
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                Vector3 tmp;
+                tmp = mapData[i + (parentNum1 / 3) * 3, j + (parentNum1 % 3) * 3].transform.position;
+                mapData[i + (parentNum1 / 3) * 3, j + (parentNum1 % 3) * 3].transform.position = mapData[i + (parentNum2 / 3) * 3, j + (parentNum2 % 3) * 3].transform.position;
+                mapData[i + (parentNum2 / 3) * 3, j + (parentNum2 % 3) * 3].transform.position = tmp;
+            }
+        }
 
     }
 
-    private void ChangePlayerPos(int tileNum1,int tileNum2)
+    //マップデータの取得
+    public mapObjectNum GetMapData(int dx, int dy)
     {
 
+        if (dx <= 8 && dx >= 0 && dy <= 8 && dy >= 0)
+        {
+            return (mapObjectNum)baseMapData[dy, dx];
+        }
+
+        return 0;
     }
-    
 }   
