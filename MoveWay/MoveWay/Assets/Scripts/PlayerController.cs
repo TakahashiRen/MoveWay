@@ -9,48 +9,102 @@ public class PlayerController : MonoBehaviour
     int pDy;
     //プレイヤーの移動したい方向
     Vector2 velocity;
+    //移動速度
+    public int speed;
+    //時間カウント
+    int time;
+    //アイテム獲得数
+    int itemNum;
     //マップマネージャ
-    public GameObject mapManager;
+    MapManager mapManager;
     void Start ()
     {
-        velocity = Vector2.zero;
-        pDx = 4;
-        pDy = 4;
-	}
-	
-	void Update ()
+        velocity = Vector2.right;
+        speed = 30;
+        time = 0;
+        itemNum = 0;
+        transform.position = new Vector3((-64 * 4) + pDx * 64, (64 * 4) - pDy * 64);
+    }
+
+    void Update ()
     {
-        if(Input.GetKey(KeyCode.UpArrow))
+        if(speed <= time)
         {
-            velocity = Vector2.down;
-        }
-        else if(Input.GetKey(KeyCode.DownArrow))
-        {
-            velocity = Vector2.up;
-        }
-        else if (Input.GetKey(KeyCode.RightArrow))
-        {
-            velocity = Vector2.right;
-        }
-        else if (Input.GetKey(KeyCode.LeftArrow))
-        {
-            velocity = Vector2.left;
-        }
-        else
-        {
-            velocity = Vector2.zero;
+            Move();
+            time = 0;
         }
 
-        MapManager.mapObjectNum mapD =  mapManager.GetComponent<MapManager>().GetMapData(pDx + (int)velocity.x, pDy + (int)velocity.y);
+        time++;
+    }
 
-        if(mapD != MapManager.mapObjectNum.Wall)
+    public void SetMapManager(MapManager mapManager)
+    {
+        this.mapManager = mapManager;
+    }
+
+    public void SetMapPosition(int dx,int dy)
+    {
+        this.pDx = dx;
+        this.pDy = dy;
+    }
+
+    public void TranslateMapPosition()
+    {
+        transform.position = new Vector3((-64 * 4) + pDx * 64, (64 * 4) - pDy * 64);
+    }
+
+    public int GetMapPositionX()
+    {
+        return pDx;
+    }
+
+    public int GetMapPositionY()
+    {
+        return pDy;
+    }
+
+    public void AddItemNum()
+    {
+        itemNum++;
+    }
+
+    public int GetItemNum()
+    {
+        return itemNum;
+    }
+
+    void Move()
+    {
+        bool IsMove = mapManager.IsMove(pDx + (int)velocity.x, pDy + (int)velocity.y);
+
+        if (IsMove == true)
         {
             pDx += (int)velocity.x;
             pDy += (int)velocity.y;
         }
+        else
+        {
+            if (mapManager.IsMove(pDx - (int)velocity.y, pDy - (int)velocity.x))
+            {
+                float tmp;
+                tmp = -velocity.x;
+                velocity.x = -velocity.y;
+                velocity.y = tmp;
+            }
+            else if (mapManager.IsMove(pDx + (int)velocity.y, pDy + (int)velocity.x))
+            {
+                float tmp;
+                tmp = velocity.x;
+                velocity.x = velocity.y;
+                velocity.y = tmp;
+            }
+            else
+            {
+                velocity.x = -velocity.x;
+                velocity.y = -velocity.y;
+            }
+        }
 
-        transform.position = new Vector3((-64 * 4) + pDx * 64,(64 * 4) - pDy * 64);
+        TranslateMapPosition();
     }
-
-
 }

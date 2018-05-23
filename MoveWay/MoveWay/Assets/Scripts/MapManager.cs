@@ -13,6 +13,7 @@ public class MapManager : MonoBehaviour
         Road    = 1,
         Key     = 2,
         Player  = 4,
+        Item    = 5,
     }
     //マップに配置するオブジェクト群
     public GameObject[] mapObject;
@@ -24,16 +25,30 @@ public class MapManager : MonoBehaviour
     //マップデータ
     int[,] baseMapData =
     {
+        { 0,0,0,0,0,0,0,4,0},
+        { 0,0,0,0,5,5,0,5,0},
+        { 5,5,5,0,5,0,5,5,0},
         { 0,0,0,0,0,0,0,0,0},
-        { 0,4,1,0,0,0,0,0,0},
-        { 0,1,0,0,0,0,0,0,0},
-        { 0,0,0,0,1,0,0,0,0},
-        { 0,0,0,1,2,0,0,0,0},
-        { 0,0,0,0,0,0,0,0,0},
-        { 0,0,0,0,0,0,0,0,0},
-        { 0,0,0,0,0,0,0,0,0},
-        { 0,0,0,0,0,0,0,0,0},
+        { 5,5,0,0,0,0,0,0,0},
+        { 0,5,0,0,0,0,0,0,0},
+        { 5,0,0,0,0,0,0,5,0},
+        { 5,0,0,0,0,0,0,5,0},
+        { 5,5,5,0,0,0,5,5,0},
     };
+
+    int[,] ansMapData =
+    {
+        { 0,0,0,0,0,0,0,0,0},
+        { 0,0,0,0,5,5,5,5,0},
+        { 0,0,0,0,5,0,0,5,0},
+        { 0,0,0,0,5,0,0,0,0},
+        { 0,0,0,0,5,0,0,0,0},
+        { 5,5,5,5,5,0,0,0,0},
+        { 5,0,0,0,5,0,0,0,0},
+        { 5,0,0,0,5,0,0,0,0},
+        { 5,5,5,5,5,0,0,0,0},
+    };
+
 
     //いじるマップのオブジェクトデータ
     GameObject[,] mapData;
@@ -43,6 +58,9 @@ public class MapManager : MonoBehaviour
 
     //プレイヤー
     GameObject player;
+
+    //アイテム管理
+    List<GameObject> items;
 
     //選べるタイルの数
     int tileSelectNum;
@@ -54,6 +72,8 @@ public class MapManager : MonoBehaviour
 
     void Start()
     {
+        //アイテムの管理
+        items = new List<GameObject>();
         //マスの親の数を決める
         int parentMaxNum = (mapHeight / 3) * (mapWidth / 3);
         //親を生成する
@@ -99,6 +119,13 @@ public class MapManager : MonoBehaviour
                     case (int)mapObjectNum.Player:
                         obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
                         player = Instantiate(mapObject[3], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                        player.GetComponent<PlayerController>().SetMapPosition(i, j);
+                        break;
+                    case (int)mapObjectNum.Item:
+                        obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                        GameObject item = Instantiate(mapObject[4], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                        item.GetComponent<ItemController>().SetMapPosition(j, i);
+                        items.Add(item);
                         break;
                 }
                 //親の設定
@@ -110,6 +137,8 @@ public class MapManager : MonoBehaviour
         tileSelectNum = 2;
         clickedTileNum = new int[tileSelectNum];
         tileSelectCount = 0;
+
+        player.GetComponent<PlayerController>().SetMapManager(this);
     }
 
     //更新処理
@@ -124,6 +153,7 @@ public class MapManager : MonoBehaviour
             ChangeMapDataPosition(clickedTileNum[0], clickedTileNum[1]);
             tileSelectCount = 0;
         }
+        IsGetItem();
     }
 
     private void CheckClickParent()
@@ -148,14 +178,49 @@ public class MapManager : MonoBehaviour
 
     void ChangeMapData(int parentNum1,int parentNum2)
     {
-        for(int i = 0;i < 3;i++)
+        int playerX = player.GetComponent<PlayerController>().GetMapPositionX();
+        int playerY = player.GetComponent<PlayerController>().GetMapPositionY();
+
+        for (int i = 0;i < 3;i++)
         {
             for(int j = 0;j < 3;j++)
             {
+                int mapData1X = j + (parentNum1 % 3) * 3;
+                int mapData1Y = i + (parentNum1 / 3) * 3;
+                int mapData2X = j + (parentNum2 % 3) * 3;
+                int mapData2Y = i + (parentNum2 / 3) * 3;
                 GameObject tmp;
-                tmp = mapData[i + (parentNum1 / 3) * 3, j + (parentNum1 % 3) * 3];
-                mapData[i + (parentNum1 / 3) * 3, j + (parentNum1 % 3) * 3] = mapData[i + (parentNum2 / 3) * 3, j + (parentNum2 % 3) * 3];
-                mapData[i + (parentNum2 / 3) * 3, j + (parentNum2 % 3) * 3] = tmp;
+                tmp = mapData[mapData1Y,mapData1X];
+                mapData[mapData1Y, mapData1X] = mapData[mapData2Y, mapData2X];
+                mapData[mapData2Y, mapData2X] = tmp;
+
+                if(playerX == mapData1X && playerY == mapData1Y)
+                {
+                    player.GetComponent<PlayerController>().SetMapPosition(mapData2X, mapData2Y);
+                    player.GetComponent<PlayerController>().TranslateMapPosition();
+                }
+                else if(playerX == mapData2X && playerY == mapData2Y)
+                {
+                    player.GetComponent<PlayerController>().SetMapPosition(mapData1X, mapData1Y);
+                    player.GetComponent<PlayerController>().TranslateMapPosition();
+                }
+
+                for (int k = 0; k < items.Count; k++)
+                {
+                    int iX = items[k].GetComponent<ItemController>().GetMapPositionX();
+                    int iY = items[k].GetComponent<ItemController>().GetMapPositionY();
+
+                    if(iX == mapData1X && iY == mapData1Y)
+                    {
+                        items[k].GetComponent<ItemController>().SetMapPosition(mapData2X, mapData2Y);
+                        items[k].GetComponent<ItemController>().TranslateMapPosition();
+                    }
+                    if (iX == mapData2X && iY == mapData2Y)
+                    {
+                        items[k].GetComponent<ItemController>().SetMapPosition(mapData1X, mapData1Y);
+                        items[k].GetComponent<ItemController>().TranslateMapPosition();
+                    }
+                }
             }
         }
     }
@@ -175,15 +240,46 @@ public class MapManager : MonoBehaviour
 
     }
 
-    //マップデータの取得
-    public mapObjectNum GetMapData(int dx, int dy)
+    //移動可能かどうか
+    public bool IsMove(int dx,int dy)
     {
-
-        if (dx <= 8 && dx >= 0 && dy <= 8 && dy >= 0)
+        if (dx >= 0 && dx < 9 && dy >= 0 && dy < 9)
         {
-            return (mapObjectNum)baseMapData[dy, dx];
+            if (mapData[dy, dx].tag == "Wall")
+            {
+                return false;
+            }
         }
+        else
+        {
+            return false;
+        }
+        return true;
+    }
 
-        return 0;
+    //アイテムの総計を数える
+    int GetItemNum()
+    {
+        return items.Count;
+    }
+
+    //プレイヤーがアイテムを獲得しているか確認
+    void IsGetItem()
+    {
+        int pX = player.GetComponent<PlayerController>().GetMapPositionX();
+        int pY = player.GetComponent<PlayerController>().GetMapPositionY();
+
+        for (int i = 0;i < items.Count;i++)
+        {
+            int iX = items[i].GetComponent<ItemController>().GetMapPositionX();
+            int iY = items[i].GetComponent<ItemController>().GetMapPositionY();
+
+            if(iX == pX && iY == pY)
+            {
+                Destroy(items[i]);
+                items.RemoveAt(i);
+                player.GetComponent<PlayerController>().AddItemNum();
+            }
+        }
     }
 }   
