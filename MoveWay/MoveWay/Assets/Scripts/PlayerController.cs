@@ -7,6 +7,9 @@ public class PlayerController : MonoBehaviour
     //プレイヤーのグリッド位置
     int pDx;
     int pDy;
+    //移動後のグリッド位置
+    int afPDx;
+    int afPDy;
     //プレイヤーの移動したい方向
     Vector2 velocity;
     //移動速度
@@ -20,21 +23,26 @@ public class PlayerController : MonoBehaviour
     void Start ()
     {
         velocity = Vector2.right;
-        speed = 30;
-        time = 0;
+        afPDx = pDx;
+        afPDy = pDy;
+        time = 30;
         itemNum = 0;
-        transform.position = new Vector3((-64 * 4) + pDx * 64, (64 * 4) - pDy * 64);
     }
 
     void Update ()
     {
-        if(speed <= time)
+        time++;
+
+        if (speed < time)
         {
-            Move();
+            CheckMove();
+            TranslateMapPosition();
             time = 0;
         }
-
-        time++;
+        else
+        {
+            Move();
+        }
     }
 
     public void SetMapManager(MapManager mapManager)
@@ -46,6 +54,9 @@ public class PlayerController : MonoBehaviour
     {
         this.pDx = dx;
         this.pDy = dy;
+
+        this.afPDx = pDx + (int)velocity.x;
+        this.afPDy = pDy + (int)velocity.y;
     }
 
     public void TranslateMapPosition()
@@ -73,14 +84,17 @@ public class PlayerController : MonoBehaviour
         return itemNum;
     }
 
-    void Move()
+    void CheckMove()
     {
-        bool IsMove = mapManager.IsMove(pDx + (int)velocity.x, pDy + (int)velocity.y);
+        pDx = afPDx;
+        pDy = afPDy;
 
+        bool IsMove = mapManager.IsMove(pDx + (int)velocity.x, pDy + (int)velocity.y);
+        
         if (IsMove == true)
         {
-            pDx += (int)velocity.x;
-            pDy += (int)velocity.y;
+            velocity.x = velocity.x;
+            velocity.y = velocity.y; 
         }
         else
         {
@@ -104,7 +118,16 @@ public class PlayerController : MonoBehaviour
                 velocity.y = -velocity.y;
             }
         }
+        afPDx = (int)velocity.x + pDx;
+        afPDy = (int)velocity.y + pDy;
 
-        TranslateMapPosition();
+    }
+
+    void Move()
+    {
+        float x = transform.position.x + velocity.x * (64 / speed);
+        float y = transform.position.y - velocity.y * (64 / speed);
+
+        transform.position = new Vector3(x, y, transform.position.z);
     }
 }
