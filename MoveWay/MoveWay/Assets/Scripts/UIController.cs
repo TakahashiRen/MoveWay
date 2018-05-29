@@ -15,6 +15,9 @@ public class UIController : MonoBehaviour
     {
         player = GameObject.Find("Player(Clone)");
 
-        GetComponent<Text>().text = player.GetComponent<PlayerController>().GetItemNum().ToString();
-	}
+        if(player != null)
+        {
+            GetComponent<Text>().text = player.GetComponent<PlayerController>().GetItemNum().ToString();
+        }
+    }
 }
