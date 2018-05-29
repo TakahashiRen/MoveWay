@@ -24,31 +24,9 @@ public class MapManager : MonoBehaviour
     int mapWidth = 9;
 
     //マップデータ
-    int[,] baseMapData =
-    {
-        { 0,0,0,0,0,0,0,4,0},
-        { 0,0,0,0,5,5,0,5,0},
-        { 5,5,5,0,5,0,5,5,0},
-        { 0,0,0,0,0,0,0,0,0},
-        { 5,5,0,0,0,0,0,0,0},
-        { 0,5,0,0,0,0,0,0,0},
-        { 5,0,0,0,0,0,0,5,0},
-        { 5,0,0,0,0,0,0,5,0},
-        { 5,5,5,0,0,0,5,5,0},
-    };
+    int[,] baseMapData;
 
-    int[,] ansMapData =
-    {
-        { 0,0,0,0,0,0,0,0,0},
-        { 0,0,0,0,5,5,5,5,0},
-        { 0,0,0,0,5,0,0,5,0},
-        { 0,0,0,0,5,0,0,0,0},
-        { 0,0,0,0,5,0,0,0,0},
-        { 5,5,5,5,5,0,0,0,0},
-        { 5,0,0,0,5,0,0,0,0},
-        { 5,0,0,0,5,0,0,0,0},
-        { 5,5,5,5,5,0,0,0,0},
-    };
+    int[,] ansMapData;
 
 
     //いじるマップのオブジェクトデータ
@@ -82,6 +60,9 @@ public class MapManager : MonoBehaviour
 
     void Start()
     {
+        string[,] str = new string[9, 9];
+        baseMapData = GetComponent<MapReader>().readCSVData(Application.dataPath + "/Resources/Stage1/Stage1.csv",ref str);
+        ansMapData = GetComponent<MapReader>().readCSVData(Application.dataPath + "/Resources/Stage1/StageAns1.csv", ref str);
         //アイテムの管理
         items = new List<GameObject>();
         //マスの親の数を決める
