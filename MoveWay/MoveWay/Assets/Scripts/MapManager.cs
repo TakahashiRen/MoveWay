@@ -48,6 +48,8 @@ public class MapManager : MonoBehaviour
     int tileSelectNum;
     //クリックした位置のタイルの番号
     int[] clickedTileNum;
+    //選択時のエフェクト
+    public GameObject selectEffect;
 
     //タイルを選んだ数
     int tileSelectCount;
@@ -144,6 +146,7 @@ public class MapManager : MonoBehaviour
         {
             ChangeMapData(clickedTileNum[0], clickedTileNum[1]);
             ChangeMapDataPosition(clickedTileNum[0], clickedTileNum[1]);
+            selectEffect.SetActive(false);
             tileSelectCount = 0;
         }
         IsGetItem();
@@ -166,6 +169,8 @@ public class MapManager : MonoBehaviour
 
             if (clickedTileNum[tileSelectCount] >= 0 && clickedTileNum[tileSelectCount] <= 8)
             {
+                selectEffect.SetActive(true);
+                selectEffect.transform.position = gridParent[clickedTileNum[tileSelectCount]].transform.position;
                 tileSelectCount++;
             }
             else
