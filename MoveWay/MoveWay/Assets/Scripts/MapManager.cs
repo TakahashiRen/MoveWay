@@ -64,6 +64,9 @@ public class MapManager : MonoBehaviour
     //クリアテキストデータ
     public GameObject text;
 
+    //コメント表示オブジェクト
+    public GameObject commentObj;
+
     void Start()
     {
         string[,] str = new string[9, 9];
@@ -174,12 +177,17 @@ public class MapManager : MonoBehaviour
             selectEffect.SetActive(false);
             tileSelectCount = 0;
         }
+        //プレイヤーがアイテムをゲットしているか確認
         IsGetItem();
-        IsClear = CheckClear();
+        //宝箱が空くかどうか確認
         CheckTreasureBoxOpen();
         if(IsClear)
         {
-            text.GetComponent<Text>().text = "Clear!!";
+            commentObj.GetComponent<CommentController>().InstantiateComment("クリア！", 500.0f);
+        }
+        else
+        {
+            IsClear = CheckClear();
         }
     }
 
