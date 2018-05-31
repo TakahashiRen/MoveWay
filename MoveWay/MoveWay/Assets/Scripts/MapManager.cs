@@ -15,6 +15,7 @@ public class MapManager : MonoBehaviour
         Key     = 2,
         Player  = 4,
         Item    = 5,
+        TreasureBox = 6,
     }
     //マップに配置するオブジェクト群
     public GameObject[] mapObject;
@@ -34,6 +35,7 @@ public class MapManager : MonoBehaviour
 
     //配置されたマスの親
     GameObject[] gridParent;
+    GameObject[] gridParentIsChange;
 
     //プレイヤー
     GameObject player;
@@ -43,6 +45,8 @@ public class MapManager : MonoBehaviour
 
     //アイテム管理
     List<GameObject> items;
+    //宝箱の管理
+    List<GameObject> treasures;
 
     //選べるタイルの数
     int tileSelectNum;
@@ -67,10 +71,12 @@ public class MapManager : MonoBehaviour
         ansMapData = GetComponent<MapReader>().readCSVData(Application.dataPath + "/Resources/Stage1/StageAns1.csv", ref str);
         //アイテムの管理
         items = new List<GameObject>();
+        treasures = new List<GameObject>();
         //マスの親の数を決める
         int parentMaxNum = (mapHeight / 3) * (mapWidth / 3);
         //親を生成する
         gridParent = new GameObject[parentMaxNum];
+        gridParentIsChange = new GameObject[parentMaxNum];
         for(int i = 0;i < parentMaxNum;i++)
         {
             //親の生成
@@ -101,26 +107,45 @@ public class MapManager : MonoBehaviour
                 switch(baseMapData[i,j])
                 {
                     case (int)mapObjectNum.Wall:
-                        obj = Instantiate(mapObject[0], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
-                        break;
+                        {
+                            obj = Instantiate(mapObject[0], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            break;
+                        }
                     case (int)mapObjectNum.Road:
-                        obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
-                        break;
+                        {
+                            obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            break;
+                        }
                     case (int)mapObjectNum.Key:
-                        obj = Instantiate(mapObject[2], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
-                        break;
+                        {
+                            obj = Instantiate(mapObject[2], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            break;
+                        }
                     case (int)mapObjectNum.Player:
-                        obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
-                        player = Instantiate(mapObject[3], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
-                        player.GetComponent<PlayerController>().SetMapPosition(i, j);
-                        baseMapData[i, j] = 5;
-                        break;
+                        {
+                            obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            player = Instantiate(mapObject[3], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            player.GetComponent<PlayerController>().SetMapPosition(i, j);
+                            baseMapData[i, j] = 5;
+                            break;
+                        }
                     case (int)mapObjectNum.Item:
-                        obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
-                        GameObject item = Instantiate(mapObject[4], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
-                        item.GetComponent<ItemController>().SetMapPosition(j, i);
-                        items.Add(item);
-                        break;
+                        {
+                            obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            GameObject item = Instantiate(mapObject[4], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            item.GetComponent<ItemController>().SetMapPosition(j, i);
+                            items.Add(item);
+                            break;
+                        }
+                    case (int)mapObjectNum.TreasureBox:
+                        {
+                            obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            GameObject treasure = Instantiate(mapObject[5], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
+                            treasure.GetComponent<TreasureBoxManager>().SetMapPosition(j, i);
+                            treasures.Add(treasure);
+                            baseMapData[i, j] = 5;
+                            break;
+                        }
                 }
                 //親の設定
                 obj.transform.parent = gridParent[parentNum].transform;
@@ -151,7 +176,7 @@ public class MapManager : MonoBehaviour
         }
         IsGetItem();
         IsClear = CheckClear();
-
+        CheckTreasureBoxOpen();
         if(IsClear)
         {
             text.GetComponent<Text>().text = "Clear!!";
@@ -230,6 +255,23 @@ public class MapManager : MonoBehaviour
                         items[k].GetComponent<ItemController>().TranslateMapPosition();
                     }
                 }
+                for(int l = 0;l < treasures.Count;l++)
+                {
+                    int iX = treasures[l].GetComponent<TreasureBoxManager>().GetMapPositionX();
+                    int iY = treasures[l].GetComponent<TreasureBoxManager>().GetMapPositionY();
+
+                    if (iX == mapData1X && iY == mapData1Y)
+                    {
+                        treasures[l].GetComponent<TreasureBoxManager>().SetMapPosition(mapData2X, mapData2Y);
+                        treasures[l].GetComponent<TreasureBoxManager>().TranslateMapPosition();
+                    }
+                    if (iX == mapData2X && iY == mapData2Y)
+                    {
+                        treasures[l].GetComponent<TreasureBoxManager>().SetMapPosition(mapData1X, mapData1Y);
+                        treasures[l].GetComponent<TreasureBoxManager>().TranslateMapPosition();
+                    }
+
+                }
             }
         }
     }
@@ -288,6 +330,19 @@ public class MapManager : MonoBehaviour
                 Destroy(items[i]);
                 items.RemoveAt(i);
                 player.GetComponent<PlayerController>().AddItemNum();
+            }
+        }
+    }
+
+    //宝箱が開かれるかチェック
+    //アイテムが全部取られていたら開ける
+    void CheckTreasureBoxOpen()
+    {
+        if(items.Count == 0)
+        {
+            for(int i = 0;i < treasures.Count;i++)
+            {
+                treasures[i].GetComponent<TreasureBoxManager>().OpenTreasureBox();
             }
         }
     }
