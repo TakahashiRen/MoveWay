@@ -59,19 +59,28 @@ public class MapManager : MonoBehaviour
     int tileSelectCount;
 
     //クリアしたかどうか
-    bool IsClear;
+    public bool IsClear;
+    bool isClearCommentDisplayed = false;
 
-    //クリアテキストデータ
-    public GameObject text;
 
     //コメント表示オブジェクト
     public GameObject commentObj;
 
+    //お題の画像オブジェクト
+    public GameObject odaiObject;
+
+    //シーン切り替えボタン
+    public GameObject button;
+
     void Start()
     {
         string[,] str = new string[9, 9];
-        baseMapData = GetComponent<MapReader>().readCSVData(Application.dataPath + "/Resources/Stage1/Stage1.csv",ref str);
-        ansMapData = GetComponent<MapReader>().readCSVData(Application.dataPath + "/Resources/Stage1/StageAns1.csv", ref str);
+        int stageNum = PlayerPrefs.GetInt("StageNum",1);
+        Debug.Log(stageNum.ToString());
+        baseMapData = GetComponent<MapReader>().readCSVData(Application.dataPath + "/Resources/Stage"+ stageNum +"/Stage" + stageNum + ".csv",ref str);
+        ansMapData = GetComponent<MapReader>().readCSVData(Application.dataPath + "/Resources/Stage" + stageNum +"/StageAns" + stageNum +".csv", ref str);
+        SpriteRenderer sprite = odaiObject.GetComponent<SpriteRenderer>();
+        sprite.sprite = Resources.Load<Sprite>("Stage" + stageNum + "/StageIcon" + stageNum);
         //アイテムの管理
         items = new List<GameObject>();
         treasures = new List<GameObject>();
@@ -129,7 +138,7 @@ public class MapManager : MonoBehaviour
                             obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
                             player = Instantiate(mapObject[3], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
                             player.GetComponent<PlayerController>().SetMapPosition(i, j);
-                            baseMapData[i, j] = 5;
+                            baseMapData[i, j] = 1;
                             break;
                         }
                     case (int)mapObjectNum.Item:
@@ -137,6 +146,7 @@ public class MapManager : MonoBehaviour
                             obj = Instantiate(mapObject[1], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
                             GameObject item = Instantiate(mapObject[4], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
                             item.GetComponent<ItemController>().SetMapPosition(j, i);
+                            baseMapData[i, j] = 1;
                             items.Add(item);
                             break;
                         }
@@ -146,7 +156,7 @@ public class MapManager : MonoBehaviour
                             GameObject treasure = Instantiate(mapObject[5], new Vector3(pos.x, pos.y, 0.0f), transform.rotation);
                             treasure.GetComponent<TreasureBoxManager>().SetMapPosition(j, i);
                             treasures.Add(treasure);
-                            baseMapData[i, j] = 5;
+                            baseMapData[i, j] = 1;
                             break;
                         }
                 }
@@ -167,27 +177,37 @@ public class MapManager : MonoBehaviour
     //更新処理
     void Update()
     {
-        //タイルが選択されているかチェック
-        CheckClickParent();
-        //タイルが2枚選択されているときの処理
-        if(tileSelectCount == 2)
+        if (IsClear == false)
         {
-            ChangeMapData(clickedTileNum[0], clickedTileNum[1]);
-            ChangeMapDataPosition(clickedTileNum[0], clickedTileNum[1]);
-            selectEffect.SetActive(false);
-            tileSelectCount = 0;
-        }
-        //プレイヤーがアイテムをゲットしているか確認
-        IsGetItem();
-        //宝箱が空くかどうか確認
-        CheckTreasureBoxOpen();
-        if(IsClear)
-        {
-            commentObj.GetComponent<CommentController>().InstantiateComment("クリア！", 500.0f);
+            //タイルが選択されているかチェック
+            CheckClickParent();
+            //タイルが2枚選択されているときの処理
+            if (tileSelectCount == 2)
+            {
+                ChangeMapData(clickedTileNum[0], clickedTileNum[1]);
+                ChangeMapDataPosition(clickedTileNum[0], clickedTileNum[1]);
+                selectEffect.SetActive(false);
+                tileSelectCount = 0;
+            }
+            //プレイヤーがアイテムをゲットしているか確認
+            IsGetItem();
+            //宝箱が空くかどうか確認
+            CheckTreasureBoxOpen();
+            IsClear = CheckClear();
         }
         else
         {
-            IsClear = CheckClear();
+            if (isClearCommentDisplayed == false)
+            {
+                for (int i = 0; i < items.Count; i++)
+                {
+                    items[i].GetComponent<ItemController>().Destroy();
+                }
+                commentObj.GetComponent<CommentController>().InstantiateComment("クリア！", 500.0f);
+                isClearCommentDisplayed = true;
+                button.SetActive(true);
+            }
+
         }
     }
 
@@ -325,6 +345,7 @@ public class MapManager : MonoBehaviour
     //プレイヤーがアイテムを獲得しているか確認
     void IsGetItem()
     {
+        if (items.Count == 0) return;
         int pX = player.GetComponent<PlayerController>().GetMapPositionX();
         int pY = player.GetComponent<PlayerController>().GetMapPositionY();
 
@@ -335,7 +356,7 @@ public class MapManager : MonoBehaviour
 
             if(iX == pX && iY == pY)
             {
-                Destroy(items[i]);
+                items[i].GetComponent<ItemController>().Destroy();
                 items.RemoveAt(i);
                 player.GetComponent<PlayerController>().AddItemNum();
             }

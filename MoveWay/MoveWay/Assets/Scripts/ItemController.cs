@@ -6,6 +6,8 @@ public class ItemController : MonoBehaviour
 {
     int iDx;
     int iDy;
+
+    public GameObject effect;
 	void Start ()
     {
 		
@@ -35,6 +37,12 @@ public class ItemController : MonoBehaviour
     public int GetMapPositionY()
     {
         return iDy;
+    }
+
+    public void Destroy()
+    {
+        Instantiate(effect, transform.position, transform.rotation);
+        Destroy(this.gameObject);
     }
 
 }

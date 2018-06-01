@@ -33,15 +33,18 @@ public class PlayerController : MonoBehaviour
     {
         time++;
 
-        if (speed < time)
+        if (mapManager.GetComponent<MapManager>().IsClear != true)
         {
-            CheckMove();
-            TranslateMapPosition();
-            time = 0;
-        }
-        else
-        {
-            Move();
+            if (speed < time)
+            {
+                CheckMove();
+                TranslateMapPosition();
+                time = 0;
+            }
+            else
+            {
+                Move();
+            }
         }
     }
 

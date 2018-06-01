@@ -7,8 +7,6 @@ public class GameManager : MonoBehaviour
 {
     float timer;
 
-    public GameObject countDownText;
-
     public GameObject mapManager;
 
     public GameObject comment;
@@ -25,9 +23,9 @@ public class GameManager : MonoBehaviour
         {
             if (timer % 60 == 0)
             {
-                float min = GetComponent<GetScreenData>().getScreenBottomRight().y + 50.0f;
-                float max = GetComponent<GetScreenData>().getScreenTopLeft().y - 50.0f;
-               comment.GetComponent<CommentController>().InstantiateComment((timer / 60).ToString(), 700.0f,true,min,max);
+                //float min = GetComponent<GetScreenData>().getScreenBottomRight().y + 50.0f;
+                //float max = GetComponent<GetScreenData>().getScreenTopLeft().y - 50.0f;
+                comment.GetComponent<CommentController>().InstantiateComment((timer / 60).ToString(), 700.0f);
             }
         }
         else if(timer < -60)
